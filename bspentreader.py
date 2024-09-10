@@ -32,7 +32,6 @@ class BSPEntReader:
     def __init__(self, filepath: Path):
         self.filepath = filepath
         self.entities: list[dict[str, str]] = []
-        bsplumps: list[tuple[int, int]] = []
 
         with filepath.open('rb') as file:
             version = read_int(file)
