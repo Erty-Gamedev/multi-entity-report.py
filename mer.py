@@ -19,6 +19,7 @@ class Args:
     values: list[str] = dataclasses.field(default_factory=list)
     flags: int = 0
     flags_or: bool = False
+    exact: bool = False
 
 def parse_args() -> tuple[argparse.ArgumentParser, Args]:
     argparser = argparse.ArgumentParser(
@@ -53,9 +54,11 @@ def parse_args() -> tuple[argparse.ArgumentParser, Args]:
         '-o', '--flags_or', action='store_true',
         help='change spawnflag check mode to ANY')
     
-    args = argparser.parse_args(
-        # ['.', '-c', 'a']
-        )
+    argparser.add_argument(
+        '-e', '--exact', action='store_true',
+        help='classname, key, or value must match the whole query term')
+    
+    args = argparser.parse_args()
     flags = 0 if not args.flags else reduce(lambda a, b: int(a)|int(b), args.flags, 0)
 
     if not args.maps:
@@ -67,28 +70,40 @@ def parse_args() -> tuple[argparse.ArgumentParser, Args]:
             'Please build a search query using CLI arguments '\
             '(use --help to see list of available arguments).')
 
-    return argparser, Args(args.maps, args.classname, args.key, args.value, flags, args.flags_or)
+    return argparser, Args(args.maps, args.classname, args.key,
+                            args.value, flags, args.flags_or, args.exact)
+
+
+def match_in_list(search: str, query_list: list[str], exact: bool) -> bool:
+    search = search.casefold()
+    if exact:
+        return search in [q.casefold() for q in query_list]
+    for query in query_list:
+        if search.startswith(query.casefold()):
+            return True
+    return False
 
 
 def check_map(filepath: Path, args: Args) -> list[tuple[int, dict[str, str]]]:
     reader = BSPEntReader(filepath)
     entities: list[tuple[int, dict[str, str]]] = []
+    exact = args.exact
 
-    for index, entity in enumerate(reader.entities, start=-1):
+    for index, entity in enumerate(reader.entities, start=0):
         if args.classnames:
-            if entity['classname'] not in args.classnames:
+            if not match_in_list(entity['classname'], args.classnames, exact):
                 continue
         if args.keys:
             skip = True
             for key in entity.keys():
-                if key in args.keys:
+                if match_in_list(key, args.keys, exact):
                     skip = False
             if skip:
                 continue
         if args.values:
             skip = True
             for value in entity.values():
-                if value in args.values:
+                if match_in_list(value, args.values, exact):
                     skip = False
             if skip:
                 continue

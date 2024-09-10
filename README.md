@@ -15,13 +15,33 @@ The following arguments are available for building a search query.
 Using them more than once builds a list of possible terms to match against,
 i.e. `-k targetname -v my_entity1 -v my_entity2` will match any entity whose targetname is *either* my_entity1 or my_entity2.
 
+By default a partial match is used for classnames, keys and values,
+only the beginning of each field need to match the query
+(meaning the classname query "monster_alien" will match "monster_alien_controller", "monster_alien_grunt" and "monster_alien_slave").<br>
+One can change this by using `--exact` for whole term matches only.
+
 | Argument         | Description                        |
 | ---------------- | ---------------------------------- |
-| -c, --classname  | classnames that must match         |
-| -k, --key        | keys that must match               |
-| -v, --value      | values that must match             |
-| -f, --flags      | spawnflags that must match (ALL must match unless --flags_or is used) |
-| -o, --flags_or   | change spawnflag check mode to ANY |
+| -c, --classname  | Classnames that must match         |
+| -k, --key        | Keys that must match               |
+| -v, --value      | Values that must match             |
+| -f, --flags      | Spawnflags that must match (ALL must match unless --flags_or is used) |
+| -o, --flags_or   | Change spawnflag check mode to ANY |
+| -e, --exact      | Matches must be exact (whole term) |
+
+### Example
+
+```cli
+python mer.py C:/Steam/Steamapps/common/Half-Life/valve/maps -c monster_gman -v argument
+```
+
+Will result in
+
+```txt
+c1a0.bsp: [
+  monster_gman (index 54, targetname 'argumentg')
+]
+```
 
 ### Spawnflags
 
