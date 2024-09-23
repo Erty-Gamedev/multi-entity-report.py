@@ -1,10 +1,7 @@
-from typing import Final
 from pathlib import Path
-from io import BufferedReader
+from io import BufferedReader, StringIO
+from itertools import batched
 from struct import unpack
-
-LUMP_ENTITIES: Final[int] = 0
-HEADER_LUMPS:  Final[int] = 15
 
 
 class InvalidFormatException(Exception):
@@ -27,6 +24,44 @@ def read_ntstring(file: BufferedReader, length: int) -> str:
         string += chr(b)
     return string
 
+def read_token(content: StringIO) -> str:
+    token = ''
+    while c := content.read(1):
+        if c == '"':
+            break
+        token += c
+    return token
+
+def read_entity(content: StringIO) -> dict[str, str]:
+    entity: dict[str, str] = {}
+    tokens: list[str] = []
+
+    while c := content.read(1):
+        if c.isspace(): continue
+
+        if c == '"':
+            tokens.append(read_token(content))
+            continue
+
+        if c == '}': break
+
+        raise Exception(f"Unexpected character: '{c}' (at {content.tell()})")
+
+    for key, value in batched(tokens, 2):
+        entity[key] = value
+
+    return entity
+
+def read_entities(content: StringIO) -> list[dict[str, str]]:
+    entities: list[dict[str, str]] = []
+
+    while c := content.read(1):
+        if c.isspace(): continue
+        if c == '{':
+            entity = read_entity(content)
+            entities.append(entity)
+    
+    return entities
 
 class BSPEntReader:
     def __init__(self, filepath: Path):
@@ -44,30 +79,4 @@ class BSPEntReader:
             
             file.seek(nOffset)
             entity_content = read_ntstring(file, nLength)
-            self.read_entities(entity_content)
-    
-    def read_entities(self, content: str):
-        entity: dict[str, str] = {}
-        for line in content.splitlines():
-            line = line.strip()
-
-            if line.startswith('{'):
-                entity = {}
-                continue
-
-            if line.startswith('//'):
-                continue
-            
-            if line.startswith('"'):
-                keyvalue = line.split('"')
-                if len(keyvalue) > 5:
-                    raise Exception(f"Invalid keyvalue: {keyvalue}.")
-                key, value = keyvalue[1].strip(), keyvalue[3].strip()
-
-                entity[key] = value
-            
-            elif line.startswith('}'):
-                self.entities.append(entity)
-            
-            else:
-                raise Exception(f"Unexpected entity data: {line}")
+            self.entities = read_entities(StringIO(entity_content))
