@@ -31,7 +31,7 @@ def parse_args() -> tuple[argparse.ArgumentParser, Args]:
         'maps', nargs='?', type=str,
         help='maps folder to search')
     argparser.add_argument(
-        '--version', action='version', version="%(prog)s 1.0.0",
+        '--version', action='version', version="%(prog)s 1.1.0",
         help='display current version')
     
     argparser.add_argument(
